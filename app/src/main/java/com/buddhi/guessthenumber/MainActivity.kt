@@ -1,13 +1,20 @@
 package com.buddhi.guessthenumber
 
-import androidx.appcompat.app.AppCompatActivity
+import android.content.ContentValues.TAG
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.SeekBar
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+import kotlin.math.abs
 
 class MainActivity : AppCompatActivity() {
 
@@ -16,6 +23,7 @@ class MainActivity : AppCompatActivity() {
     private var totalScore: Int = 0
     private var score: Int = 10
     private var timer: CountDownTimer? = null
+    private var mInterstitialAd: InterstitialAd? = null
 
     private lateinit var guessSubmit: Button
     private lateinit var guessField: EditText
@@ -30,6 +38,19 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        var adRequest = AdRequest.Builder().build()
+        InterstitialAd.load(this,"ca-app-pub-3940256099942544/1033173712", adRequest, object : InterstitialAdLoadCallback() {
+            override fun onAdFailedToLoad(adError: LoadAdError) {
+               // adError?.toString()?.let { Log.d(TAG, it) }
+                mInterstitialAd = null
+            }
+
+            override fun onAdLoaded(interstitialAd: InterstitialAd) {
+                Log.d(TAG, "Ad was loaded.")
+                mInterstitialAd = interstitialAd
+            }
+        })
+
         guessSubmit = findViewById(R.id.submitGuess)
         guessField = findViewById(R.id.guessField)
         resultContainer = findViewById(R.id.resultText)
@@ -43,6 +64,9 @@ class MainActivity : AppCompatActivity() {
 
         guessSubmit.setOnClickListener { checkGuess() }
         resetButton.setOnClickListener { resetGame() }
+
+
+
 
         startGame()
     }
@@ -86,7 +110,7 @@ class MainActivity : AppCompatActivity() {
                     displayMessage("Last guess was too high!", "red")
                 }
             }
-            val sliderValue = 100 - Math.abs(userGuess - randomNumber)
+            val sliderValue = 100 - abs(userGuess - randomNumber)
             myRange.progress = sliderValue
             guessCount++
             guessField.text.clear()
@@ -103,6 +127,11 @@ class MainActivity : AppCompatActivity() {
             guessSubmit.isEnabled = false
             resetButton.visibility = View.VISIBLE
             timer?.cancel()
+            if (mInterstitialAd != null) {
+                mInterstitialAd?.show(this)
+            } else {
+                Log.d("TAG", "The interstitial ad wasn't ready yet.")
+            }
         }
 
         private fun resetGame() {
